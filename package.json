@@ -1,0 +1,6 @@
+{
+  "name": "flight-intel-terminal",
+  "version": "1.0.0",
+  "description": "Bloomberg-style Business & First class flight intelligence terminal",
+  "private": true
+}
