@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Intelligence Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080808;--bg2:#0d0d0d;--bg3:#121212;
+  --border:#1c1c1c;--border2:#252525;
+  --amber:#f5a623;--amber2:#ffd580;--amber-dim:#6b4510;
+  --green:#00c97a;--green-dim:#003d24;
+  --red:#ff3d4f;--red-dim:#4a0d14;
+  --blue:#4a9eff;--blue-dim:#0a2540;
+  --gold:#c9a84c;--gold-dim:#2a1f00;
+  --text:#c8c8c8;--text2:#777;--text3:#444;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* TOP BAR */
+.topbar{background:#000;border-bottom:1px solid var(--amber);height:34px;display:flex;align-items:center;padding:0 14px;gap:18px;flex-shrink:0}
+.logo{font-weight:700;font-size:12px;color:var(--amber);letter-spacing:4px}
+.logo em{color:#fff;font-style:normal}
+.tb-fx{display:flex;gap:14px;font-size:10px;color:var(--text3)}
+.tb-fx b{color:var(--green);font-weight:500}
+.tb-time{margin-left:auto;color:var(--amber2);font-size:10px;letter-spacing:1px}
+
+/* TAPE */
+.tape{height:24px;background:#000;border-bottom:1px solid var(--border);overflow:hidden;display:flex;align-items:center;flex-shrink:0}
+.tape-inner{display:flex;white-space:nowrap;animation:scroll-tape 80s linear infinite}
+@keyframes scroll-tape{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ti{display:flex;align-items:center;gap:6px;padding:0 16px;font-size:10px;border-right:1px solid var(--border);height:24px}
+.ti .r{color:var(--amber);font-weight:600}
+.ti .cb{font-size:8px;font-weight:700;padding:0 3px}
+.ti .cb.B{color:var(--blue)}.ti .cb.F{color:var(--gold)}
+.ti .sv{color:var(--green);font-weight:600}
+
+/* SEARCH BAR */
+.searchbar{background:var(--bg2);border-bottom:1px solid var(--border);height:42px;display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.lbl{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.inp{background:var(--bg3);border:1px solid var(--border2);color:var(--amber2);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:3px 7px;outline:none;text-transform:uppercase;width:72px}
+.inp:focus{border-color:var(--amber)}
+.inp.w110{width:110px}.inp.sel{width:110px;cursor:pointer;color:var(--text2);font-size:10px;font-weight:400}
+.arrow{color:var(--text3);font-size:13px}
+.cbtns{display:flex;border:1px solid var(--border2)}
+.cbtn{padding:3px 11px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all .12s}
+.cbtn.ab{background:var(--blue-dim);color:var(--blue)}
+.cbtn.af{background:var(--gold-dim);color:var(--gold)}
+.cbtn.ax{background:#1a1a2a;color:var(--amber)}
+.go-btn{background:var(--amber);color:#000;border:none;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:9px;letter-spacing:2px;padding:4px 16px;cursor:pointer;white-space:nowrap}
+.go-btn:hover{background:var(--amber2)}
+.go-btn:disabled{background:var(--amber-dim);color:#666;cursor:wait}
+.regime-tag{margin-left:auto;font-size:8px;font-weight:700;letter-spacing:2px;padding:3px 8px;white-space:nowrap}
+.regime-tag.SALE{background:var(--green-dim);color:var(--green)}
+.regime-tag.NORMAL{background:var(--border);color:var(--text3)}
+.regime-tag.SCARCITY{background:var(--red-dim);color:var(--red)}
+
+/* STATUS BANNER */
+.status-bar{display:none;font-size:10px;padding:5px 14px;text-align:center;flex-shrink:0}
+.status-bar.loading{display:block;background:#1a1200;color:var(--amber);border-bottom:1px solid var(--amber-dim)}
+.status-bar.error{display:block;background:var(--red-dim);color:var(--red);border-bottom:1px solid var(--red)}
+.status-bar.warn{display:block;background:#151000;color:var(--amber2);border-bottom:1px solid var(--amber-dim)}
+
+/* GLOBAL BEST STRIP */
+.gb-strip{display:none;background:linear-gradient(90deg,#030f07,#041208);border-bottom:1px solid #0d3320;flex-shrink:0;padding:0 14px;height:52px;align-items:center;gap:0}
+.gb-strip.on{display:flex}
+.gb-cell{display:flex;align-items:center;gap:12px;padding:0 18px;border-right:1px solid #0d3320;height:100%}
+.gb-cell:last-child{border-right:none;margin-left:auto}
+.gb-eyebrow{font-size:8px;color:var(--green);letter-spacing:2px;font-weight:700;margin-bottom:2px}
+.gb-cabin-tag{font-size:8px;font-weight:700;padding:1px 5px;letter-spacing:1px}
+.gb-cabin-tag.B{background:var(--blue-dim);color:var(--blue)}
+.gb-cabin-tag.F{background:var(--gold-dim);color:var(--gold)}
+.gb-big{font-size:22px;font-weight:700;color:var(--green);line-height:1;letter-spacing:-1px}
+.gb-sub{font-size:9px;color:var(--text2);margin-top:1px}
+.gb-sep{font-size:20px;color:var(--text3)}
+.gb-struck{font-size:11px;color:var(--text3);text-decoration:line-through}
+.gb-save{font-size:13px;font-weight:700;color:var(--green)}
+.gb-save.ns{color:var(--text3);font-size:10px;font-weight:400}
+.gb-info{font-size:9px;color:var(--text3);line-height:1.7}
+.gb-info b{color:var(--text2)}
+.est-tag{font-size:8px;color:var(--amber2);margin-left:4px}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 1fr 320px;gap:1px;background:var(--border);flex:1;min-height:0}
+.panel{background:var(--bg2);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel.tall{grid-row:span 2}
+
+/* PANEL HEADER */
+.ph{background:var(--bg3);border-bottom:1px solid var(--border);height:28px;display:flex;align-items:center;padding:0 10px;gap:7px;flex-shrink:0}
+.ph-t{font-size:9px;font-weight:700;color:var(--amber);letter-spacing:2px;text-transform:uppercase}
+.ph-s{font-size:9px;color:var(--text3);margin-left:auto}
+.badge{font-size:8px;font-weight:700;padding:1px 5px;letter-spacing:1px}
+.badge.B{background:var(--blue-dim);color:var(--blue)}
+.badge.F{background:var(--gold-dim);color:var(--gold)}
+.badge.X{background:#1a1a2a;color:var(--amber)}
+.badge.live{background:var(--green-dim);color:var(--green)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+.dot.spin{background:var(--amber);animation:blink .4s infinite}
+.dot.err{background:var(--red);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* BLOTTER */
+.scroll{overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{background:var(--bg);color:var(--text3);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+.tbl tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s}
+.tbl tbody tr:hover{background:var(--bg3)}
+.tbl tbody tr.sel{background:#0b1c0e}
+.tbl tbody tr.gbest{background:#060f08}
+.tbl tbody tr.gbest td:first-child{border-left:2px solid var(--green)}
+.tbl td{padding:5px 8px;vertical-align:middle}
+.cb-pill{font-size:8px;font-weight:700;padding:1px 5px;letter-spacing:1px;display:inline-block}
+.cb-pill.B{background:var(--blue-dim);color:var(--blue)}
+.cb-pill.F{background:var(--gold-dim);color:var(--gold)}
+.p-cell{font-weight:600;color:var(--amber2);font-size:11px}
+.p-cell.g{color:var(--green)}
+.mkt-cell{font-size:9px;color:var(--text2)}
+.mkt-cell.you{color:var(--text3)}
+.chg-cell.up{color:var(--green)}.chg-cell.dn{color:var(--red)}
+.sig-cell{font-size:9px;font-weight:700;letter-spacing:1px}
+.sig-cell.buy{color:var(--green)}.sig-cell.wait{color:var(--amber)}
+.spark{height:26px;width:58px;vertical-align:middle;display:inline-block}
+
+/* STATS BAR */
+.sbar{background:var(--bg);border-top:1px solid var(--border);height:26px;display:flex;align-items:center;padding:0 10px;gap:18px;flex-shrink:0}
+.si{display:flex;gap:5px;font-size:9px}
+.si .l{color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.si .v{color:var(--text)}
+.si .v.g{color:var(--green)}.si .v.a{color:var(--amber)}
+
+/* CHART */
+.chart-wrap{flex:1;padding:10px 10px 8px;min-height:0}
+#chart{width:100%;height:100%}
+.cl{font-size:9px;fill:var(--text3);font-family:'IBM Plex Mono',monospace}
+.cgl{stroke:var(--border);stroke-dasharray:2,4}
+.ll-b{fill:none;stroke:var(--blue);stroke-width:1.5}
+.ll-f{fill:none;stroke:var(--gold);stroke-width:1.5}
+.al-b{fill:url(#gb)}.al-f{fill:url(#gf)}
+
+/* SIGNALS */
+.sig-list{padding:8px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex:1}
+.sc{border:1px solid var(--border);padding:9px 10px;background:var(--bg)}
+.sc.buy{border-left:3px solid var(--green)}.sc.wait{border-left:3px solid var(--amber)}
+.sc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.sc-route{font-size:11px;font-weight:600}
+.sc-sig{font-size:9px;font-weight:700;letter-spacing:2px}
+.sc-sig.buy{color:var(--green)}.sc-sig.wait{color:var(--amber)}
+.sc-save-box{background:#05100a;border:1px solid var(--green-dim);padding:5px 9px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.sc-save-lbl{font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.sc-save-amt{font-size:17px;font-weight:700;color:var(--green);line-height:1}
+.sc-save-sub{font-size:9px;color:var(--text2)}
+.sc-prices{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.sc-glob{font-size:16px;font-weight:600;color:var(--green)}
+.sc-home{font-size:12px;color:var(--text3);text-decoration:line-through}
+.sc-plbl{font-size:8px;color:var(--text3)}
+.sc-row{display:flex;justify-content:space-between;margin-top:4px}
+.sc-kv{font-size:9px;color:var(--text3)}
+.sc-kv span{color:var(--text2)}
+.pbar-wrap{margin-top:6px}
+.pbar-lbl{display:flex;justify-content:space-between;font-size:8px;color:var(--text3);margin-bottom:2px}
+.pbar-track{height:3px;background:var(--border);position:relative}
+.pbar-fill{position:absolute;left:0;top:0;height:100%;background:var(--green)}
+.pbar-mark{position:absolute;top:-2px;width:1px;height:7px;background:var(--amber)}
+
+/* ARB TABLE */
+.arb-scroll{overflow-y:auto;flex:1}
+.arb{width:100%;border-collapse:collapse}
+.arb thead th{background:var(--bg);color:var(--text3);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+.arb td{padding:5px 8px;font-size:10px;border-bottom:1px solid var(--border)}
+.arb tr:hover{background:var(--bg3);cursor:pointer}
+.arb tr.home-row{background:#151000}
+.arb tr.home-row td:nth-child(2){border-left:2px solid var(--amber)}
+.arb .ap{color:var(--amber2);font-weight:600}
+.arb .ap.best{color:var(--green);font-weight:700}
+.arb .sv{font-weight:700;font-size:9px}
+.arb .sv.pos{color:var(--green)}.arb .sv.neg{color:var(--red)}.arb .sv.zero{color:var(--text3);font-style:italic;font-weight:400}
+.ar{font-size:8px;font-weight:700;padding:1px 4px;letter-spacing:1px}
+.ar.SALE{background:var(--green-dim);color:var(--green)}
+.ar.NORMAL{background:var(--bg);color:var(--text3)}
+.ar.SCARCITY{background:var(--red-dim);color:var(--red)}
+.est-dot{font-size:8px;color:var(--amber2);margin-left:2px}
+
+/* EMPTY */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3)}
+.empty .ico{font-size:26px;opacity:.3}.empty .msg{font-size:10px;letter-spacing:2px}
+
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">FLT<em>INTEL</em> ▸ TERMINAL</div>
+  <div class="tb-fx">
+    <span>USD/GBP <b>0.7923</b></span>
+    <span>USD/EUR <b>0.9211</b></span>
+    <span>USD/JPY <b style="color:var(--text2)">149.82</b></span>
+    <span>USD/AED <b style="color:var(--text2)">3.6725</b></span>
+  </div>
+  <div class="tb-time" id="clock">--:--:-- UTC</div>
+</div>
+
+<!-- TAPE -->
+<div class="tape"><div class="tape-inner" id="tape"></div></div>
+
+<!-- STATUS BANNER -->
+<div class="status-bar" id="status-bar"></div>
+
+<!-- SEARCH BAR -->
+<div class="searchbar">
+  <span class="lbl">Route</span>
+  <input class="inp" id="origin" value="JFK" maxlength="3">
+  <span class="arrow">→</span>
+  <input class="inp" id="dest" value="LHR" maxlength="3">
+  <span class="lbl" style="margin-left:6px">Depart</span>
+  <input class="inp w110" id="depart" value="2025-06-01">
+  <span class="lbl" style="margin-left:6px">Cabin</span>
+  <div class="cbtns">
+    <button class="cbtn ab" onclick="setCabin('B',this)">BIZ</button>
+    <button class="cbtn"    onclick="setCabin('F',this)">FIRST</button>
+    <button class="cbtn"    onclick="setCabin('X',this)">BOTH</button>
+  </div>
+  <span class="lbl" style="margin-left:6px" title="Your booking market — sets the savings comparison">My Market</span>
+  <select class="inp sel" id="home">
+    <option value="JFK">🇺🇸 USA</option>
+    <option value="LHR">🇬🇧 UK</option>
+    <option value="DOH">🇶🇦 Qatar</option>
+    <option value="DXB">🇦🇪 Dubai</option>
+    <option value="SIN">🇸🇬 Singapore</option>
+    <option value="BKK">🇹🇭 Thailand</option>
+    <option value="KUL">🇲🇾 Malaysia</option>
+    <option value="FRA">🇩🇪 Germany</option>
+    <option value="CDG">🇫🇷 France</option>
+    <option value="AMS">🇳🇱 Netherlands</option>
+    <option value="NRT">🇯🇵 Japan</option>
+    <option value="SYD">🇦🇺 Australia</option>
+    <option value="YYZ">🇨🇦 Canada</option>
+  </select>
+  <button class="go-btn" id="go-btn" onclick="runSearch()">SEARCH ▶</button>
+  <div class="regime-tag NORMAL" id="regime-tag">◈ —</div>
+</div>
+
+<!-- GLOBAL BEST STRIP -->
+<div class="gb-strip" id="gb-strip"></div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- BLOTTER -->
+  <div class="panel">
+    <div class="ph">
+      <div class="ph-t">Quote Blotter</div>
+      <span class="badge B">BIZ</span><span class="badge F">FIRST</span>
+      <div class="dot" id="dot"></div>
+      <span class="badge live">LIVE</span>
+      <div class="ph-s" id="blotter-sub">Ready · press SEARCH</div>
+    </div>
+    <div class="scroll">
+      <table class="tbl">
+        <thead><tr>
+          <th>Airline</th><th>Cab</th><th>Date</th><th>Stops</th>
+          <th>Price USD</th><th>Book From</th><th>Δ24h</th><th>Trend</th><th>Sig</th>
+        </tr></thead>
+        <tbody id="blotter-body">
+          <tr><td colspan="9"><div class="empty" style="height:180px">
+            <div class="ico">✈</div><div class="msg">Enter route · press SEARCH</div>
+          </div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sbar">
+      <div class="si"><span class="l">Best BIZ</span><span class="v g" id="sb-biz">—</span></div>
+      <div class="si"><span class="l">Best FIRST</span><span class="v g" id="sb-fst">—</span></div>
+      <div class="si"><span class="l">Offers</span><span class="v" id="sb-cnt">—</span></div>
+      <div class="si" style="margin-left:auto"><span class="l">Regime</span><span class="v a" id="sb-reg">—</span></div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="panel">
+    <div class="ph">
+      <div class="ph-t">Price History · <span id="chart-lbl">—</span></div>
+      <span class="badge X" id="chart-cab">—</span>
+      <div class="ph-s">90d rolling · all markets · USD</div>
+    </div>
+    <div class="chart-wrap"><svg id="chart"></svg></div>
+  </div>
+
+  <!-- RIGHT: Signals + Arb -->
+  <div class="panel tall">
+    <div class="ph">
+      <div class="ph-t">BUY / WAIT Signals</div>
+      <div class="ph-s">Real prices · per cabin</div>
+    </div>
+    <div class="sig-list" id="sig-list">
+      <div class="empty" style="height:100px">
+        <div class="ico">◈</div><div class="msg">No signals yet</div>
+      </div>
+    </div>
+    <div class="ph" style="border-top:1px solid var(--border)">
+      <div class="ph-t">Global Arbitrage</div>
+      <div class="ph-s" id="arb-sub">14 markets · USD</div>
+    </div>
+    <div class="arb-scroll">
+      <table class="arb">
+        <thead><tr>
+          <th>#</th><th>Market</th><th>Cab</th>
+          <th>Price</th><th>vs Your Mkt</th><th>Regime</th>
+        </tr></thead>
+        <tbody id="arb-body">
+          <tr><td colspan="6" style="color:var(--text3);text-align:center;padding:14px">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let currentCabin = 'B';
+let lastData     = null;
+let liveTimer    = null;
+
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+(function tick(){
+  const n=new Date(),p=v=>String(v).padStart(2,'0');
+  document.getElementById('clock').textContent=
+    `${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+  setTimeout(tick,1000);
+})();
+
+// ══════════════════════════════════════════════════════════
+// TAPE
+// ══════════════════════════════════════════════════════════
+const TAPE=[
+  {r:'JFK→LHR',c:'B',p:1890,s:'-32% vs US',m:'🇶🇦'},
+  {r:'LAX→NRT',c:'B',p:2480,s:'-20% vs US',m:'🇸🇬'},
+  {r:'JFK→CDG',c:'F',p:4620,s:'-29% vs US',m:'🇦🇪'},
+  {r:'ORD→LHR',c:'B',p:2600,s:'-12% vs US',m:'🇬🇧'},
+  {r:'SFO→SIN',c:'F',p:6600,s:'-25% vs US',m:'🇸🇬'},
+  {r:'MIA→MAD',c:'B',p:1720,s:'-22% vs US',m:'🇶🇦'},
+  {r:'JFK→DXB',c:'F',p:5180,s:'-34% vs US',m:'🇶🇦'},
+  {r:'LAX→LHR',c:'B',p:2175,s:'-25% vs US',m:'🇦🇪'},
+];
+(()=>{
+  const items=[...TAPE,...TAPE];
+  document.getElementById('tape').innerHTML=items.map(t=>`
+    <div class="ti">
+      <span class="r">${t.r}</span>
+      <span class="cb ${t.c}">${t.c==='F'?'FIRST':'BIZ'}</span>
+      <span>${t.m}</span>
+      <span style="color:var(--text)">$${t.p.toLocaleString()}</span>
+      <span class="sv">${t.s}</span>
+    </div>`).join('');
+})();
+
+// ══════════════════════════════════════════════════════════
+// SPARKLINE
+// ══════════════════════════════════════════════════════════
+function spark(base, color, w=58, h=26){
+  const d=[base];
+  for(let i=1;i<20;i++) d.push(Math.max(200,d[i-1]+(Math.random()-.48)*base*.04));
+  const mn=Math.min(...d),mx=Math.max(...d),r=mx-mn||1;
+  const pts=d.map((v,i)=>`${(i/19)*w},${h-((v-mn)/r)*(h-4)-2}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// STATUS HELPERS
+// ══════════════════════════════════════════════════════════
+function setStatus(msg, type='loading'){
+  const b=document.getElementById('status-bar');
+  b.className=`status-bar ${type}`;
+  b.textContent=msg;
+}
+function clearStatus(){ document.getElementById('status-bar').className='status-bar'; }
+function setError(msg){
+  setStatus(`✕  ${msg}`, 'error');
+  document.getElementById('dot').className='dot err';
+  document.getElementById('go-btn').disabled=false;
+  document.getElementById('go-btn').textContent='SEARCH ▶';
+}
+
+// ══════════════════════════════════════════════════════════
+// GLOBAL BEST STRIP
+// ══════════════════════════════════════════════════════════
+function renderGB(gb){
+  const strip=document.getElementById('gb-strip');
+  const keys=currentCabin==='X'?Object.keys(gb):[currentCabin];
+  const cards=keys.filter(c=>gb[c]).map(c=>{
+    const g=gb[c];
+    const ns=g.saving<=0;
+    const estTag=g.isEstimated?`<span class="est-tag">~est</span>`:'';
+    return `
+    <div class="gb-cell">
+      <div>
+        <div class="gb-eyebrow">✦ Global Best Price</div>
+        <span class="gb-cabin-tag ${c}">${c==='F'?'FIRST CLASS':'BUSINESS'}</span>
+      </div>
+      <div>
+        <div class="gb-big">$${g.priceUSD.toLocaleString()}${estTag}</div>
+        <div class="gb-sub">Book via ${g.posLabel} · ${g.airline==='(est.)'?'Multiple airlines':g.airline}</div>
+      </div>
+      <div class="gb-sep">vs</div>
+      <div>
+        <div class="gb-struck">$${g.homePrice.toLocaleString()} your market</div>
+        <div class="gb-save ${ns?'ns':''}">
+          ${g.saving>0?`Save $${g.saving.toLocaleString()} · ${g.savingPct}% cheaper`
+            :g.saving===0?'Your market is the best price'
+            :`$${Math.abs(g.saving).toLocaleString()} more than your market`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  strip.innerHTML=cards+`<div class="gb-cell">
+    <div class="gb-info">
+      Real prices: <b>US · UK · Qatar · Dubai · Singapore · Germany</b><br>
+      Other markets: estimated from real baseline · Updated <b>${new Date().toLocaleTimeString()}</b>
+    </div>
+  </div>`;
+  strip.classList.add('on');
+}
+
+// ══════════════════════════════════════════════════════════
+// BLOTTER
+// ══════════════════════════════════════════════════════════
+function renderBlotter(offers, gb){
+  const homePos=document.getElementById('home').value;
+  const shown=currentCabin==='X'?offers:offers.filter(o=>o.cabin===currentCabin);
+  const gbP={};
+  Object.entries(gb).forEach(([c,g])=>gbP[c]=g.priceUSD);
+  const tbody=document.getElementById('blotter-body');
+  if(!shown.length){
+    tbody.innerHTML=`<tr><td colspan="9"><div class="empty" style="height:180px">
+      <div class="ico">✈</div><div class="msg">No offers for this cabin</div>
+    </div></td></tr>`;return;
+  }
+  tbody.innerHTML=shown.map(o=>{
+    const chg=o.priceUSD-o.prevUSD;
+    const pct=((chg/(o.prevUSD||o.priceUSD))*100).toFixed(1);
+    const color=o.cabin==='F'?'var(--gold)':'var(--blue)';
+    const isBest=gbP[o.cabin]===o.priceUSD;
+    const isHome=o.posCode===homePos;
+    const estDot=o.isEstimated?`<span class="est-dot">~</span>`:'';
+    return `<tr class="${isBest?'gbest':''}" onclick="selRow(this)">
+      <td style="font-size:10px">${o.airline}${isBest?'<span style="color:var(--green);font-size:9px"> ★</span>':''}</td>
+      <td><span class="cb-pill ${o.cabin}">${o.cabin==='F'?'FIRST':'BIZ'}</span></td>
+      <td style="color:var(--text2)">${o.date}</td>
+      <td style="color:var(--text3);font-size:9px">${o.stops}</td>
+      <td class="p-cell ${isBest?'g':''}">$${o.priceUSD.toLocaleString()}${estDot}</td>
+      <td class="mkt-cell ${isHome?'you':''}">${o.posLabel}${isHome?' ◀':''}</td>
+      <td class="chg-cell ${chg>=0?'dn':'up'}">${chg>=0?'+':''}${pct}%</td>
+      <td>${spark(o.priceUSD,color)}</td>
+      <td class="sig-cell ${o.signal==='BUY'?'buy':'wait'}">${o.signal==='BUY'?'▲ BUY':'◆ WAIT'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('sb-biz').textContent=gb.B?'$'+gb.B.priceUSD.toLocaleString():'—';
+  document.getElementById('sb-fst').textContent=gb.F?'$'+gb.F.priceUSD.toLocaleString():'—';
+  document.getElementById('sb-cnt').textContent=shown.length;
+}
+function selRow(el){
+  document.querySelectorAll('#blotter-body tr').forEach(r=>r.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// ══════════════════════════════════════════════════════════
+// SIGNALS
+// ══════════════════════════════════════════════════════════
+function renderSignals(signals){
+  const shown=currentCabin==='X'?signals:signals.filter(s=>s.cabin===currentCabin);
+  const wrap=document.getElementById('sig-list');
+  if(!shown.length){
+    wrap.innerHTML=`<div class="empty" style="height:100px"><div class="ico">◈</div><div class="msg">No signals</div></div>`;return;
+  }
+  wrap.innerHTML=shown.map(s=>{
+    const saving=s.homePrice-s.globalBestUSD;
+    const savePct=s.homePrice?((saving/s.homePrice)*100).toFixed(1):0;
+    const rColor=s.regime==='SALE'?'var(--green)':s.regime==='SCARCITY'?'var(--red)':'var(--text3)';
+    const rLbl=s.regime==='SALE'?'◈ SALE':s.regime==='SCARCITY'?'⚠ SCARCITY':'● NORMAL';
+    return `<div class="sc ${s.signal}">
+      <div class="sc-top">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="sc-route">${s.route}</span>
+          <span class="badge ${s.cabin}">${s.cabin==='F'?'FIRST':'BIZ'}</span>
+        </div>
+        <span class="sc-sig ${s.signal}">${s.signal==='buy'?'▲ BUY NOW':'◆ WAIT'}</span>
+      </div>
+      ${saving>0?`<div class="sc-save-box">
+        <div>
+          <div class="sc-save-lbl">Book via ${s.bestPosLabel}</div>
+          <div class="sc-save-amt">Save $${saving.toLocaleString()}</div>
+          <div class="sc-save-sub">${savePct}% cheaper than your home market</div>
+        </div>
+      </div>`:''}
+      <div class="sc-prices">
+        <div class="sc-glob">$${s.globalBestUSD.toLocaleString()}</div>
+        ${saving>0?`<div class="sc-home">$${s.homePrice.toLocaleString()}</div>`:''}
+        <div class="sc-plbl">${saving>0?'global best  your mkt':'USD best found'}</div>
+      </div>
+      <div class="sc-row">
+        <span class="sc-kv">52W Low <span>$${s.low52w.toLocaleString()}</span></span>
+        <span class="sc-kv">52W High <span>$${s.high52w.toLocaleString()}</span></span>
+        <span class="sc-kv">DTD <span>${s.days}d</span></span>
+        <span class="sc-kv" style="color:${rColor}">${rLbl}</span>
+      </div>
+      <div class="pbar-wrap">
+        <div class="pbar-lbl">
+          <span style="color:var(--green)">DROP ${s.probDrop}%</span>
+          <span style="color:var(--red)">RISE ${100-s.probDrop}%</span>
+        </div>
+        <div class="pbar-track">
+          <div class="pbar-fill" style="width:${s.probDrop}%"></div>
+          <div class="pbar-mark" style="left:${s.probDrop}%"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// ARB TABLE
+// ══════════════════════════════════════════════════════════
+function renderArb(arb){
+  const homePos=document.getElementById('home').value;
+  const shown=currentCabin==='X'?arb:arb.filter(r=>r.cabin===currentCabin);
+  const sorted=[...shown].sort((a,b)=>a.priceUSD-b.priceUSD).map((r,i)=>({...r,rank:i+1}));
+  document.getElementById('arb-body').innerHTML=sorted.map(r=>{
+    const isHome=r.posCode===homePos;
+    const isBest=r.rank===1;
+    let svCls='sv zero',svStr='Your market';
+    if(r.save>0){svCls='sv pos';svStr=`-$${r.save.toLocaleString()} (${r.savePct}%)`}
+    if(r.save<0){svCls='sv neg';svStr=`+$${Math.abs(r.save).toLocaleString()}`}
+    const estDot=r.isEstimated?`<span class="est-dot">~</span>`:'';
+    return `<tr class="${isHome?'home-row':''}">
+      <td style="color:var(--text3)">${r.rank}</td>
+      <td style="font-weight:600">${r.posLabel}${isHome?' ◀':''}</td>
+      <td><span class="cb-pill ${r.cabin}">${r.cabin==='F'?'FIRST':'BIZ'}</span></td>
+      <td class="ap ${isBest?'best':''}">$${r.priceUSD.toLocaleString()}${isBest?' ★':''}${estDot}</td>
+      <td class="${svCls}">${svStr}</td>
+      <td><span class="ar ${r.regime}">${r.regime}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('arb-sub').textContent=`${sorted.length} markets · ◀ = your market · ~ = estimated`;
+}
+
+// ══════════════════════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════════════════════
+function renderChart(offers){
+  const svg=document.getElementById('chart');
+  const w=svg.clientWidth||580,h=svg.clientHeight||220;
+  const pad={t:22,r:44,b:30,l:65};
+  const cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,days=90;
+  const biz=offers.filter(o=>o.cabin==='B');
+  const fst=offers.filter(o=>o.cabin==='F');
+  const bizB=biz.length?Math.min(...biz.map(o=>o.priceUSD)):null;
+  const fstB=fst.length?Math.min(...fst.map(o=>o.priceUSD)):null;
+  const gen=(anchor,drift)=>{
+    if(!anchor)return null;
+    const d=[anchor*1.1];
+    for(let i=1;i<days;i++) d.push(Math.max(anchor*.7,d[i-1]+(Math.random()-.52)*anchor*drift));
+    return d;
+  };
+  const bp=gen(bizB,.04),fp=gen(fstB,.04);
+  const all=[...(bp||[]),...(fp||[])];
+  if(!all.length)return;
+  const mn=Math.min(...all)*.97,mx=Math.max(...all)*1.03;
+  const xs=i=>pad.l+(i/(days-1))*cw;
+  const ys=v=>pad.t+ch-((v-mn)/(mx-mn))*ch;
+  const line=pts=>pts.map((v,i)=>`${i?'L':'M'}${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join(' ');
+  const area=pts=>line(pts)+` L${xs(days-1)},${pad.t+ch} L${xs(0)},${pad.t+ch} Z`;
+  const grid=Array.from({length:5},(_,i)=>{
+    const v=mn+(mx-mn)*(i/4),y=ys(v);
+    return `<line class="cgl" x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w-pad.r}" y2="${y.toFixed(1)}"/>
+      <text class="cl" x="${pad.l-5}" y="${(y+3).toFixed(1)}" text-anchor="end">$${Math.round(v/100)*100}</text>`;
+  }).join('');
+  const xlbls=['90d','75d','60d','45d','30d','15d','Now'].map((l,i)=>{
+    const x=xs(Math.round(i*(days-1)/6));
+    return `<text class="cl" x="${x}" y="${h-5}" text-anchor="middle">${l}</text>`;
+  }).join('');
+  let paths='',leg='';
+  if(fp){
+    paths+=`<path class="al-f" d="${area(fp)}"/><path class="ll-f" d="${line(fp)}"/>`;
+    leg+=`<rect x="${pad.l+90}" y="${pad.t}" width="10" height="2" fill="var(--gold)"/>
+          <text class="cl" x="${pad.l+104}" y="${pad.t+3}" fill="var(--gold)">FIRST</text>`;
+  }
+  if(bp){
+    paths+=`<path class="al-b" d="${area(bp)}"/><path class="ll-b" d="${line(bp)}"/>`;
+    leg+=`<rect x="${pad.l}" y="${pad.t}" width="10" height="2" fill="var(--blue)"/>
+          <text class="cl" x="${pad.l+14}" y="${pad.t+3}" fill="var(--blue)">BUSINESS</text>`;
+    if(bizB){
+      const y=ys(bizB).toFixed(1);
+      paths+=`<line x1="${pad.l}" y1="${y}" x2="${w-pad.r}" y2="${y}" stroke="var(--green)" stroke-dasharray="3,5" stroke-width="1"/>
+              <text class="cl" x="${w-pad.r+3}" y="${+y+3}" fill="var(--green)" font-size="8">BEST</text>`;
+    }
+  }
+  svg.innerHTML=`<defs>
+    <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--blue)" stop-opacity=".15"/>
+      <stop offset="100%" stop-color="var(--blue)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--gold)" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/>
+    </linearGradient>
+  </defs>${grid}${xlbls}${paths}${leg}`;
+}
+
+// ══════════════════════════════════════════════════════════
+// CABIN TOGGLE
+// ══════════════════════════════════════════════════════════
+function setCabin(c,btn){
+  currentCabin=c;
+  document.querySelectorAll('.cbtn').forEach(b=>b.className='cbtn');
+  btn.classList.add(c==='B'?'ab':c==='F'?'af':'ax');
+  document.getElementById('chart-cab').textContent=c==='B'?'BIZ':c==='F'?'FIRST':'BOTH';
+  if(lastData){
+    renderGB(lastData.globalBest);
+    renderBlotter(lastData.offers,lastData.globalBest);
+    renderSignals(lastData.signals);
+    renderArb(lastData.arb);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// MAIN SEARCH — calls Vercel /api/search
+// ══════════════════════════════════════════════════════════
+async function runSearch(){
+  const origin=document.getElementById('origin').value.trim().toUpperCase();
+  const dest=document.getElementById('dest').value.trim().toUpperCase();
+  const depart=document.getElementById('depart').value.trim();
+  const home=document.getElementById('home').value;
+
+  if(origin.length!==3||dest.length!==3){
+    setError('Enter valid 3-letter IATA codes, e.g. JFK and LHR');return;
+  }
+
+  const btn=document.getElementById('go-btn');
+  const dot=document.getElementById('dot');
+  btn.disabled=true; btn.textContent='SEARCHING…';
+  dot.className='dot spin';
+  setStatus(`⟳  Querying real prices from Amadeus for ${origin}→${dest} across 6 markets…`,'loading');
+
+  const params=new URLSearchParams({origin,dest,cabin:currentCabin,depart,home});
+
+  try {
+    const res=await fetch(`/api/search?${params}`);
+    const data=await res.json();
+
+    if(!res.ok||data.error){
+      throw new Error(data.error||`API returned ${res.status}`);
+    }
+    if(data.offers&&data.offers.length===0){
+      setStatus(`⚠  No flights found for ${origin}→${dest} on ${depart}. Try a different date or route like JFK→LHR.`,'warn');
+      btn.disabled=false;btn.textContent='SEARCH ▶';dot.className='dot';
+      return;
+    }
+
+    lastData=data;
+    clearStatus();
+
+    renderGB(data.globalBest);
+    renderBlotter(data.offers,data.globalBest);
+    renderSignals(data.signals);
+    renderArb(data.arb);
+    renderChart(data.offers);
+
+    document.getElementById('chart-lbl').textContent=data.route;
+    document.getElementById('chart-cab').textContent=currentCabin==='B'?'BIZ':currentCabin==='F'?'FIRST':'BOTH';
+    document.getElementById('blotter-sub').textContent=
+      `${data.offers.length} offers · real+est · ${new Date(data.timestamp).toLocaleTimeString()}`;
+    document.getElementById('sb-reg').textContent=data.regime;
+    const rt=document.getElementById('regime-tag');
+    rt.className=`regime-tag ${data.regime}`;rt.textContent=`◈ ${data.regime}`;
+
+    // Auto-refresh every 5 min (Amadeus test rate limit friendly)
+    if(liveTimer)clearInterval(liveTimer);
+    liveTimer=setInterval(runSearch,300_000);
+
+  }catch(err){
+    setError(err.message+' — check Vercel function logs');
+    console.error(err);
+  }finally{
+    btn.disabled=false;btn.textContent='SEARCH ▶';
+    dot.className='dot';
+  }
+}
+
+// Home market change → instant re-render without new API call
+document.getElementById('home').addEventListener('change',()=>{
+  if(lastData){
+    renderGB(lastData.globalBest);
+    renderBlotter(lastData.offers,lastData.globalBest);
+    renderSignals(lastData.signals);
+    renderArb(lastData.arb);
+  }
+});
+
+document.querySelectorAll('.inp').forEach(el=>
+  el.addEventListener('keydown',e=>{if(e.key==='Enter')runSearch()})
+);
+window.addEventListener('resize',()=>{if(lastData)renderChart(lastData.offers)});
+</script>
+</body>
+</html>
